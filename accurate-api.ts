@@ -15,6 +15,46 @@ class AccurateApi {
     if (!this.clientId || !this.clientSecret || !this.databaseId) {
       throw new Error('Accurate API credentials are not set in the environment variables.');
     }
+
+    // Try to load existing tokens from environment or file
+    this.loadStoredTokens();
+  }
+
+  private loadStoredTokens() {
+    // Try to load from environment variables first
+    this.accessToken = process.env.ACCURATE_ACCESS_TOKEN || null;
+    this.sessionId = process.env.ACCURATE_SESSION_ID || null;
+    
+    // If not in environment, try to load from file
+    if (!this.accessToken) {
+      try {
+        const fs = require('fs');
+        const tokenFile = '.accurate-tokens.json';
+        if (fs.existsSync(tokenFile)) {
+          const tokens = JSON.parse(fs.readFileSync(tokenFile, 'utf8'));
+          this.accessToken = tokens.accessToken;
+          this.sessionId = tokens.sessionId;
+          console.log('Loaded stored Accurate.id tokens');
+        }
+      } catch (error) {
+        console.log('No stored tokens found, will need to authenticate');
+      }
+    }
+  }
+
+  private saveTokens() {
+    try {
+      const fs = require('fs');
+      const tokens = {
+        accessToken: this.accessToken,
+        sessionId: this.sessionId,
+        savedAt: new Date().toISOString()
+      };
+      fs.writeFileSync('.accurate-tokens.json', JSON.stringify(tokens, null, 2));
+      console.log('Accurate.id tokens saved for future use');
+    } catch (error) {
+      console.error('Failed to save tokens:', error);
+    }
   }
 
   async exchangeCodeForToken(code: string): Promise<void> {
@@ -37,6 +77,7 @@ class AccurateApi {
 
     this.accessToken = response.data.access_token;
     console.log('Access Token obtained.');
+    this.saveTokens();
   }
 
   async openDatabase(): Promise<void> {
@@ -54,6 +95,26 @@ class AccurateApi {
 
     this.sessionId = response.data.session;
     console.log('Database opened. Session ID obtained.');
+    this.saveTokens();
+  }
+
+  async ensureAuthenticated(): Promise<void> {
+    // Check if we already have valid tokens
+    if (this.accessToken && this.sessionId) {
+      try {
+        // Test if tokens are still valid by making a simple API call
+        await this.getEmployees();
+        console.log('Using existing Accurate.id authentication');
+        return;
+      } catch (error) {
+        console.log('Existing tokens expired, need to re-authenticate');
+        this.accessToken = null;
+        this.sessionId = null;
+      }
+    }
+
+    // If no valid tokens, need to authenticate
+    throw new Error('Accurate.id authentication required. Please visit /api/accurate-auth to authenticate.');
   }
 
   async getEmployees() {
