@@ -161,6 +161,16 @@ app.get('/api/test-journal', authenticateToken, async (req: AuthenticatedRequest
   }
 });
 
+app.get('/api/employees', authenticateToken, async (req: AuthenticatedRequest, res) => {
+  try {
+    const employees = await accurateApi.getEmployees();
+    res.json(employees);
+  } catch (error) {
+    console.error('Failed to fetch employees:', error);
+    res.status(500).json({ message: 'Failed to fetch employees' });
+  }
+});
+
 app.get('/api/loan-applications', authenticateToken, async (req, res) => {
   const loanRepository = AppDataSource.getRepository(Loan);
   const applications = await loanRepository.find();
