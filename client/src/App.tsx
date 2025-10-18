@@ -6,6 +6,7 @@ import HomePage from './components/HomePage';
 import LoginPage from './components/LoginPage';
 import AnggotaDashboard from './components/AnggotaDashboard';
 import PengurusDashboard from './components/PengurusDashboard';
+import AdminPanel from './components/AdminPanel';
 import { AuthProvider } from './contexts/AuthContext';
 
 const theme = createTheme({
@@ -63,6 +64,7 @@ function App() {
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/admin" element={<AdminPanel />} />
             <Route path="/anggota/dashboard" element={<AnggotaDashboard />} />
             <Route path="/pengurus/dashboard" element={<PengurusDashboard />} />
           </Routes>

@@ -79,6 +79,7 @@ A fullstack web application for managing cooperative employee data, loans, and f
 5. **Accurate.id Integration**
    - Obtain API credentials from Accurate.id
    - Configure OAuth redirect URI: `http://localhost:5000/api/accurate-callback`
+   - **One-time Authentication**: Visit `/admin` to authenticate with Accurate.id once
 
 ## Running the Application
 
@@ -87,6 +88,12 @@ A fullstack web application for managing cooperative employee data, loans, and f
 npm run dev
 ```
 This will start both backend (port 5000) and frontend (port 3000) concurrently.
+
+### First Time Setup
+1. Start the application: `npm run dev`
+2. Visit `http://localhost:3000/admin` to authenticate with Accurate.id
+3. Complete the OAuth flow (one-time only)
+4. Return to the application - authentication is now persistent
 
 ### Individual Services
 ```bash
@@ -101,7 +108,9 @@ npm run client
 
 ### Authentication
 - `POST /api/login` - User login (Anggota/Pengurus)
+- `GET /api/accurate-auth` - Initiate Accurate.id OAuth flow
 - `GET /api/accurate-callback` - OAuth callback from Accurate.id
+- `GET /api/auth-status` - Check Accurate.id authentication status
 
 ### Data
 - `GET /api/dashboard-data` - Member dashboard data

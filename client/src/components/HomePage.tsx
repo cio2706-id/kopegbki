@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Container,
@@ -24,11 +24,13 @@ import {
   Login as LoginIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import AuthStatus from './AuthStatus';
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [showAuthStatus, setShowAuthStatus] = useState(true);
 
   const features = [
     {
@@ -78,17 +80,34 @@ const HomePage: React.FC = () => {
           <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontWeight: 'bold' }}>
             Koperasi Pegawai Biro Klasifikasi Indonesia
           </Typography>
-          <Button
-            color="primary"
-            variant="contained"
-            startIcon={<LoginIcon />}
-            onClick={() => navigate('/login')}
-            sx={{ borderRadius: 2 }}
-          >
-            Masuk
-          </Button>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <Button
+              color="primary"
+              variant="contained"
+              startIcon={<LoginIcon />}
+              onClick={() => navigate('/login')}
+              sx={{ borderRadius: 2 }}
+            >
+              Masuk
+            </Button>
+            <Button
+              color="secondary"
+              variant="outlined"
+              onClick={() => navigate('/admin')}
+              sx={{ borderRadius: 2 }}
+            >
+              Admin
+            </Button>
+          </Box>
         </Toolbar>
       </AppBar>
+
+      {/* Authentication Status */}
+      {showAuthStatus && (
+        <Container maxWidth="lg" sx={{ py: 2 }}>
+          <AuthStatus onAuthComplete={() => setShowAuthStatus(false)} />
+        </Container>
+      )}
 
       {/* Hero Section */}
       <Box

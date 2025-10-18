@@ -54,6 +54,11 @@ const authenticateToken = (req: AuthenticatedRequest, res: Response, next: NextF
   next();
 };
 
+app.get('/api/accurate-auth', (req, res) => {
+  const authUrl = `https://account.accurate.id/oauth/authorize?response_type=code&client_id=${process.env.ACCURATE_CLIENT_ID}&redirect_uri=http://localhost:5000/api/accurate-callback&scope=read`;
+  res.redirect(authUrl);
+});
+
 app.get('/api/accurate-callback', async (req, res) => {
   const { code } = req.query;
 
@@ -64,19 +69,56 @@ app.get('/api/accurate-callback', async (req, res) => {
   try {
     await accurateApi.exchangeCodeForToken(code as string);
     await accurateApi.openDatabase();
-    res.redirect('http://localhost:3000/login');
+    res.send(`
+      <html>
+        <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+          <h2 style="color: #1976d2;">✅ Accurate.id Authentication Successful!</h2>
+          <p>You have been successfully authenticated with Accurate.id.</p>
+          <p>You can now close this window and use the application.</p>
+          <a href="http://localhost:3000" style="background: #1976d2; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 20px;">
+            Go to Application
+          </a>
+        </body>
+      </html>
+    `);
   } catch (error) {
     if (axios.isAxiosError(error)) {
       console.error('Authentication failed:', error.response?.data || error.message);
     } else {
       console.error('An unexpected error occurred:', error);
     }
-    res.status(500).send('Failed to complete authentication with Accurate.');
+    res.status(500).send(`
+      <html>
+        <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+          <h2 style="color: #d32f2f;">❌ Authentication Failed</h2>
+          <p>Failed to complete authentication with Accurate.id.</p>
+          <a href="/api/accurate-auth" style="background: #1976d2; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 20px;">
+            Try Again
+          </a>
+        </body>
+      </html>
+    `);
   }
 });
 
 app.get('/api', (req, res) => {
   res.send('Koperasi Pegawai API is running!');
+});
+
+app.get('/api/auth-status', async (req, res) => {
+  try {
+    await accurateApi.ensureAuthenticated();
+    res.json({ 
+      authenticated: true, 
+      message: 'Accurate.id is authenticated and ready' 
+    });
+  } catch (error) {
+    res.status(503).json({ 
+      authenticated: false, 
+      message: 'Accurate.id authentication required',
+      authUrl: '/api/accurate-auth'
+    });
+  }
 });
 
 app.post('/api/login', async (req, res) => {
@@ -102,6 +144,9 @@ app.post('/api/login', async (req, res) => {
 
   // Existing logic for regular employees
   try {
+    // Ensure Accurate.id is authenticated
+    await accurateApi.ensureAuthenticated();
+    
     const employees = await accurateApi.getEmployees();
     const employee = employees.find((emp: any) => emp.name.toLowerCase() === username.toLowerCase());
 
@@ -122,7 +167,15 @@ app.post('/api/login', async (req, res) => {
     }
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ success: false, message: 'An error occurred during login.' });
+    if (error.message.includes('Accurate.id authentication required')) {
+      res.status(503).json({ 
+        success: false, 
+        message: 'Accurate.id authentication required. Please contact administrator.',
+        authUrl: '/api/accurate-auth'
+      });
+    } else {
+      res.status(500).json({ success: false, message: 'An error occurred during login.' });
+    }
   }
 });
 
@@ -133,6 +186,9 @@ app.get('/api/dashboard-data', authenticateToken, async (req: AuthenticatedReque
   }
 
   try {
+    // Ensure Accurate.id is authenticated
+    await accurateApi.ensureAuthenticated();
+    
     // Fetch basic employee details
     const employeeDetail = await accurateApi.getEmployeeDetail(req.employeeId);
     
@@ -146,7 +202,11 @@ app.get('/api/dashboard-data', authenticateToken, async (req: AuthenticatedReque
     });
   } catch (error) {
     console.error('Failed to fetch dashboard data:', error);
-    res.status(500).json({ message: 'Failed to fetch dashboard data' });
+    if (error.message.includes('Accurate.id authentication required')) {
+      res.status(503).json({ message: 'Accurate.id authentication required' });
+    } else {
+      res.status(500).json({ message: 'Failed to fetch dashboard data' });
+    }
   }
 });
 
@@ -163,11 +223,18 @@ app.get('/api/test-journal', authenticateToken, async (req: AuthenticatedRequest
 
 app.get('/api/employees', authenticateToken, async (req: AuthenticatedRequest, res) => {
   try {
+    // Ensure Accurate.id is authenticated
+    await accurateApi.ensureAuthenticated();
+    
     const employees = await accurateApi.getEmployees();
     res.json(employees);
   } catch (error) {
     console.error('Failed to fetch employees:', error);
-    res.status(500).json({ message: 'Failed to fetch employees' });
+    if (error.message.includes('Accurate.id authentication required')) {
+      res.status(503).json({ message: 'Accurate.id authentication required' });
+    } else {
+      res.status(500).json({ message: 'Failed to fetch employees' });
+    }
   }
 });
 
