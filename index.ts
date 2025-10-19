@@ -167,7 +167,7 @@ app.post('/api/login', async (req, res) => {
     }
   } catch (error) {
     console.error('Login error:', error);
-    if (error.message.includes('Accurate.id authentication required')) {
+    if (error instanceof Error && error.message.includes('Accurate.id authentication required')) {
       res.status(503).json({ 
         success: false, 
         message: 'Accurate.id authentication required. Please contact administrator.',
@@ -202,7 +202,7 @@ app.get('/api/dashboard-data', authenticateToken, async (req: AuthenticatedReque
     });
   } catch (error) {
     console.error('Failed to fetch dashboard data:', error);
-    if (error.message.includes('Accurate.id authentication required')) {
+    if (error instanceof Error && error.message.includes('Accurate.id authentication required')) {
       res.status(503).json({ message: 'Accurate.id authentication required' });
     } else {
       res.status(500).json({ message: 'Failed to fetch dashboard data' });
@@ -230,7 +230,7 @@ app.get('/api/employees', authenticateToken, async (req: AuthenticatedRequest, r
     res.json(employees);
   } catch (error) {
     console.error('Failed to fetch employees:', error);
-    if (error.message.includes('Accurate.id authentication required')) {
+    if (error instanceof Error && error.message.includes('Accurate.id authentication required')) {
       res.status(503).json({ message: 'Accurate.id authentication required' });
     } else {
       res.status(500).json({ message: 'Failed to fetch employees' });
@@ -239,7 +239,7 @@ app.get('/api/employees', authenticateToken, async (req: AuthenticatedRequest, r
 });
 
 app.get('/api/loan-applications', authenticateToken, async (req, res) => {
-  const loanRepository = AppDataSource.getRepository(Loan);
+  const loanRepository = AppDataSource.getRepository(LoanSchema);
   const applications = await loanRepository.find();
   res.json(applications);
 });
@@ -254,7 +254,7 @@ app.post('/api/loan-applications', authenticateToken, async (req: AuthenticatedR
 
   try {
     const employeeDetail = await accurateApi.getEmployeeDetail(employeeId);
-    const loanRepository = AppDataSource.getRepository(Loan);
+    const loanRepository = AppDataSource.getRepository(LoanSchema);
     const newApplication = loanRepository.create({
       employeeId: employeeId,
       memberName: employeeDetail.name,
@@ -281,7 +281,7 @@ app.patch('/api/loan-applications/:id', authenticateToken, async (req: Authentic
     return res.status(401).json({ message: 'Not authenticated' });
   }
 
-  const loanRepository = AppDataSource.getRepository(Loan);
+  const loanRepository = AppDataSource.getRepository(LoanSchema);
   const application = await loanRepository.findOneBy({ id: parseInt(id) });
 
   if (!application) {
